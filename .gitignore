@@ -31,4 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
 .DS_Store
+*local.properties
+*local.yaml
+*local.yml
+db/
+

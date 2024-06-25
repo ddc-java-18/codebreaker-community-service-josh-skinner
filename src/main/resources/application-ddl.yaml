@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: ddl
+  main:
+    web-application-type: none
+  jpa:
+    properties:
+      jakarta:
+        persistence:
+          schema-generation:
+            create-source: metadata
+            scripts:
+              action: create
+              create-target: ddl.sql
