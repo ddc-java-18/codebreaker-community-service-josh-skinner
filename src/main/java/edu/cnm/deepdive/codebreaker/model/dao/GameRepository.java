@@ -12,7 +12,7 @@ public interface GameRepository extends JpaRepository<Game, Long> {
 
   List<Game> findAllByPlayerOrderByCreatedDesc(User player);
 
-  List<Game> findAllByPoolSizeAndCodeLengthAndSolved (int poolSize, int codeLength, boolean solved);
+  List<Game> findAllByPoolSizeAndCodeLength (int poolSize, int codeLength);
 
   Optional<Game> getByExternalKey(UUID externalKey);
 

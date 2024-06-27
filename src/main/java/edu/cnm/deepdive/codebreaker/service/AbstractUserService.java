@@ -9,4 +9,10 @@ public interface AbstractUserService {
   User getOrCreate(String oauthKey, String displayName);
 
   User get(UUID externalKey) throws NoSuchElementException;
+
+  User getCurrentUser();
+
+  User update(User received);
+
+
 }
