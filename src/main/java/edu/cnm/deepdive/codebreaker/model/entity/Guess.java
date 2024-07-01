@@ -20,7 +20,7 @@ public class Guess {
   @Id
   @GeneratedValue
   @Column(name = "guess_id", nullable = false, updatable = false)
-  private long id;
+  private Long id;
 
   @Column(nullable = false, updatable = false, unique = true)
   private UUID externalKey;
@@ -43,7 +43,7 @@ public class Guess {
   @CreationTimestamp
   private Instant created;
 
-  public long getId() {
+  public Long getId() {
     return id;
   }
 
@@ -90,6 +90,25 @@ public class Guess {
 
   public boolean isSolution() {
     return correct == getGame().getCodeLength();
+  }
+
+  @Override
+  public int hashCode() {
+    return (id != null) ? id.hashCode() : 0;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    boolean result;
+    if (obj == this) {
+      result = true;
+    } else if (obj instanceof Guess other) {
+      result = this.id != null && this.id.equals(other.id);
+    } else {
+      result = false;
+    }
+
+    return result;
   }
 
   void generateFieldValues () {
