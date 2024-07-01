@@ -16,4 +16,6 @@ public interface GameRepository extends JpaRepository<Game, Long> {
 
   Optional<Game> getByExternalKey(UUID externalKey);
 
+  Optional<Game> getByExternalKeyAndPlayer(UUID externalKey, User player);
+
 }
