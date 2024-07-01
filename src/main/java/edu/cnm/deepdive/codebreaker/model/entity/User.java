@@ -1,5 +1,11 @@
 package edu.cnm.deepdive.codebreaker.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,20 +27,25 @@ import org.hibernate.annotations.CreationTimestamp;
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Entity
 @Table(name = "user_profile")
+@JsonInclude(Include.NON_NULL)
+@JsonPropertyOrder({"key", "displayName", "created"})
 public class User {
 
   @Id
   @GeneratedValue
   @Column(name = "user_profile_id", updatable = false)
+  @JsonIgnore
   private Long id;
 
   @Column(nullable = false, updatable = false, unique = true)
+  @JsonProperty(value = "key", access = Access.READ_ONLY)
   private UUID externalKey;
 
   @Column(nullable = false, updatable = true, unique = true)
   private String displayName;
 
   @Column(nullable = false, updatable = false, unique = true)
+  @JsonIgnore
   private String oauthKey;
 
   @Column(nullable = false, updatable = false)
@@ -44,6 +55,7 @@ public class User {
 
   @Column(nullable = false, updatable = true)
   @Temporal(TemporalType.TIMESTAMP)
+  @JsonIgnore
   private Instant accessed;
 
   public Long getId() {
@@ -88,6 +100,7 @@ public class User {
       cascade = CascadeType.ALL, orphanRemoval = true
   )
   @OrderBy("created DESC")
+  @JsonIgnore
   private final List<Game> games = new LinkedList<>();
 
   public List<Game> getGames() {
