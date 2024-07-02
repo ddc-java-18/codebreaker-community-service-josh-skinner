@@ -5,9 +5,13 @@ import edu.cnm.deepdive.codebreaker.model.dao.GuessRepository;
 import edu.cnm.deepdive.codebreaker.model.entity.Game;
 import edu.cnm.deepdive.codebreaker.model.entity.Guess;
 import edu.cnm.deepdive.codebreaker.model.entity.User;
-import java.util.Random;
+import edu.cnm.deepdive.codebreaker.service.exception.GameAlreadySolvedException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidGuessLengthException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidPoolException;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.random.RandomGenerator;
+import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,7 +21,8 @@ public class GameService implements AbstractGameService {
   private final GuessRepository guessRepository;
   private final RandomGenerator rng;
 
-  public GameService(GameRepository gameRepository, GuessRepository guessRepository, RandomGenerator rng) {
+  public GameService(GameRepository gameRepository, GuessRepository guessRepository,
+      RandomGenerator rng) {
     this.gameRepository = gameRepository;
     this.guessRepository = guessRepository;
     this.rng = rng;
@@ -32,19 +37,29 @@ public class GameService implements AbstractGameService {
   }
 
   @Override
-  public Game getGame(UUID gameKey, User user) {
+  public Game getGame(UUID gameKey, User user) throws NoSuchElementException, InvalidPoolException {
     return gameRepository
         .getByExternalKeyAndPlayer(gameKey, user)
         .orElseThrow();
   }
 
   @Override
-  public Guess submitGuess(UUID gameKey, Guess guess, User user) {
-    throw new UnsupportedOperationException();
+  public Guess submitGuess(UUID gameKey, Guess guess, User user)
+      throws NoSuchElementException, InvalidGuessLengthException, InvalidPoolException, GameAlreadySolvedException {
+    return gameRepository
+        .getByExternalKeyAndPlayer(gameKey, user)
+        .map((game) -> {
+          validateGuess(game, guess);
+          evaluateGuess(game, guess);
+          guess.setGame(game);
+          return guessRepository.save(guess);
+        })
+        .orElseThrow();
   }
 
   @Override
-  public Guess getGuess(UUID gameKey, UUID guessKey, User user) {
+  public Guess getGuess(UUID gameKey, UUID guessKey, User user)
+      throws NoSuchElementException, InvalidPoolException {
     return guessRepository
         .getByExternalKeyAndGameExternalKeyAndGamePlayer(guessKey, gameKey, user)
         .orElseThrow();
@@ -84,21 +99,13 @@ public class GameService implements AbstractGameService {
     return builder.toString();
   }
 
-  public static class InvalidPoolException extends IllegalArgumentException {
-
-    public InvalidPoolException() {
-    }
-
-    public InvalidPoolException(String message) {
-      super(message);
-    }
-
-    public InvalidPoolException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
-    public InvalidPoolException(Throwable cause) {
-      super(cause);
-    }
+  private static void validateGuess(Game game, Guess guess)
+      throws InvalidGuessLengthException, InvalidPoolException, GameAlreadySolvedException {
+    throw new UnsupportedOperationException();
   }
+
+  private static void evaluateGuess(Game game, Guess guess) {
+    throw new UnsupportedOperationException();
+  }
+
 }
