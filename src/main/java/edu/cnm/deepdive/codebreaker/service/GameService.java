@@ -6,12 +6,16 @@ import edu.cnm.deepdive.codebreaker.model.entity.Game;
 import edu.cnm.deepdive.codebreaker.model.entity.Guess;
 import edu.cnm.deepdive.codebreaker.model.entity.User;
 import edu.cnm.deepdive.codebreaker.service.exception.GameAlreadySolvedException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidGuessCharacterException;
 import edu.cnm.deepdive.codebreaker.service.exception.InvalidGuessLengthException;
 import edu.cnm.deepdive.codebreaker.service.exception.InvalidPoolException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 import java.util.random.RandomGenerator;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -101,11 +105,53 @@ public class GameService implements AbstractGameService {
 
   private static void validateGuess(Game game, Guess guess)
       throws InvalidGuessLengthException, InvalidPoolException, GameAlreadySolvedException {
-    throw new UnsupportedOperationException();
+    String code = guess
+        .getCode();
+    int guessLength = (int) code
+        .codePoints()
+        .count();
+    if (guessLength != game.getCodeLength()) {
+      throw new InvalidGuessLengthException();
+    }
+    Set<Integer> poolCodePointSet = game
+        .getPool()
+        .codePoints()
+        .boxed()
+        .collect(Collectors.toSet());
+    if (!poolCodePointSet.containsAll(code.codePoints().boxed().toList())) {
+      throw new InvalidGuessCharacterException();
+    }
   }
 
   private static void evaluateGuess(Game game, Guess guess) {
-    throw new UnsupportedOperationException();
+    int correct = 0;
+    int[] secretCodePoints = codePoints(game.getCode());
+    int[] guessCodePoints = codePoints(guess.getCode());
+    Map<Integer, Integer> secretCodePointCounts = new HashMap<>();
+    Map<Integer, Integer> guessCodePointCounts = new HashMap<>();
+    for (int i = 0; i < secretCodePoints.length; i++) {
+      int secretCodePoint = secretCodePoints[i];
+      int guessCodePoint = guessCodePoints[i];
+      if (secretCodePoint == guessCodePoint) {
+        correct++;
+      } else {
+        secretCodePointCounts.put(
+            secretCodePoint, 1 + secretCodePointCounts.getOrDefault(secretCodePoint, 0));
+        guessCodePointCounts.put(
+            guessCodePoint, 1 + guessCodePointCounts.getOrDefault(guessCodePoint, 0));
+      }
+    }
+    guess.setCorrect(correct);
+    int close = secretCodePointCounts
+        .entrySet()
+        .stream()
+            .mapToInt((entry) ->
+                Math.min(entry.getValue(), guessCodePointCounts.getOrDefault(entry.getKey(), 0)))
+                .sum();
+    guess.setClose(close);
   }
-
 }
+
+
+
+

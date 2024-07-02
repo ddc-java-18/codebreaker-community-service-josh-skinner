@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,6 +31,7 @@ public class Guess {
   private Game game;
 
   @Column(nullable = false, updatable = false, length = Game.MAX_CODE_LENGTH)
+  @Size(min = Game.MIN_CODE_LENGTH, max = 2 * Game.MAX_CODE_LENGTH, message = "Guess must have same length as code.")
   private String code;
 
   @Column(nullable = false, updatable = false)
