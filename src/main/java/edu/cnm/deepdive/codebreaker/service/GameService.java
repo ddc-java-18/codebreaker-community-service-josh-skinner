@@ -125,7 +125,7 @@ public class GameService implements AbstractGameService {
 
   private static void evaluateGuess(Game game, Guess guess) {
     int correct = 0;
-    int[] secretCodePoints = codePoints(game.getCode());
+    int[] secretCodePoints = codePoints(game.getSecretCode());
     int[] guessCodePoints = codePoints(guess.getCode());
     Map<Integer, Integer> secretCodePointCounts = new HashMap<>();
     Map<Integer, Integer> guessCodePointCounts = new HashMap<>();
