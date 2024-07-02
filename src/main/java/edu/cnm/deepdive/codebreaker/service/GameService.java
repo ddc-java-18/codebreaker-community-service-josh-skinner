@@ -5,9 +5,17 @@ import edu.cnm.deepdive.codebreaker.model.dao.GuessRepository;
 import edu.cnm.deepdive.codebreaker.model.entity.Game;
 import edu.cnm.deepdive.codebreaker.model.entity.Guess;
 import edu.cnm.deepdive.codebreaker.model.entity.User;
-import java.util.Random;
+import edu.cnm.deepdive.codebreaker.service.exception.GameAlreadySolvedException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidGuessCharacterException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidGuessLengthException;
+import edu.cnm.deepdive.codebreaker.service.exception.InvalidPoolException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 import java.util.random.RandomGenerator;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,7 +25,8 @@ public class GameService implements AbstractGameService {
   private final GuessRepository guessRepository;
   private final RandomGenerator rng;
 
-  public GameService(GameRepository gameRepository, GuessRepository guessRepository, RandomGenerator rng) {
+  public GameService(GameRepository gameRepository, GuessRepository guessRepository,
+      RandomGenerator rng) {
     this.gameRepository = gameRepository;
     this.guessRepository = guessRepository;
     this.rng = rng;
@@ -32,19 +41,29 @@ public class GameService implements AbstractGameService {
   }
 
   @Override
-  public Game getGame(UUID gameKey, User user) {
+  public Game getGame(UUID gameKey, User user) throws NoSuchElementException, InvalidPoolException {
     return gameRepository
         .getByExternalKeyAndPlayer(gameKey, user)
         .orElseThrow();
   }
 
   @Override
-  public Guess submitGuess(UUID gameKey, Guess guess, User user) {
-    throw new UnsupportedOperationException();
+  public Guess submitGuess(UUID gameKey, Guess guess, User user)
+      throws NoSuchElementException, InvalidGuessLengthException, InvalidPoolException, GameAlreadySolvedException {
+    return gameRepository
+        .getByExternalKeyAndPlayer(gameKey, user)
+        .map((game) -> {
+          validateGuess(game, guess);
+          evaluateGuess(game, guess);
+          guess.setGame(game);
+          return guessRepository.save(guess);
+        })
+        .orElseThrow();
   }
 
   @Override
-  public Guess getGuess(UUID gameKey, UUID guessKey, User user) {
+  public Guess getGuess(UUID gameKey, UUID guessKey, User user)
+      throws NoSuchElementException, InvalidPoolException {
     return guessRepository
         .getByExternalKeyAndGameExternalKeyAndGamePlayer(guessKey, gameKey, user)
         .orElseThrow();
@@ -84,21 +103,55 @@ public class GameService implements AbstractGameService {
     return builder.toString();
   }
 
-  public static class InvalidPoolException extends IllegalArgumentException {
-
-    public InvalidPoolException() {
+  private static void validateGuess(Game game, Guess guess)
+      throws InvalidGuessLengthException, InvalidPoolException, GameAlreadySolvedException {
+    String code = guess
+        .getCode();
+    int guessLength = (int) code
+        .codePoints()
+        .count();
+    if (guessLength != game.getCodeLength()) {
+      throw new InvalidGuessLengthException();
     }
-
-    public InvalidPoolException(String message) {
-      super(message);
-    }
-
-    public InvalidPoolException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
-    public InvalidPoolException(Throwable cause) {
-      super(cause);
+    Set<Integer> poolCodePointSet = game
+        .getPool()
+        .codePoints()
+        .boxed()
+        .collect(Collectors.toSet());
+    if (!poolCodePointSet.containsAll(code.codePoints().boxed().toList())) {
+      throw new InvalidGuessCharacterException();
     }
   }
+
+  private static void evaluateGuess(Game game, Guess guess) {
+    int correct = 0;
+    int[] secretCodePoints = codePoints(game.getSecretCode());
+    int[] guessCodePoints = codePoints(guess.getCode());
+    Map<Integer, Integer> secretCodePointCounts = new HashMap<>();
+    Map<Integer, Integer> guessCodePointCounts = new HashMap<>();
+    for (int i = 0; i < secretCodePoints.length; i++) {
+      int secretCodePoint = secretCodePoints[i];
+      int guessCodePoint = guessCodePoints[i];
+      if (secretCodePoint == guessCodePoint) {
+        correct++;
+      } else {
+        secretCodePointCounts.put(
+            secretCodePoint, 1 + secretCodePointCounts.getOrDefault(secretCodePoint, 0));
+        guessCodePointCounts.put(
+            guessCodePoint, 1 + guessCodePointCounts.getOrDefault(guessCodePoint, 0));
+      }
+    }
+    guess.setCorrect(correct);
+    int close = secretCodePointCounts
+        .entrySet()
+        .stream()
+            .mapToInt((entry) ->
+                Math.min(entry.getValue(), guessCodePointCounts.getOrDefault(entry.getKey(), 0)))
+                .sum();
+    guess.setClose(close);
+  }
 }
+
+
+
+

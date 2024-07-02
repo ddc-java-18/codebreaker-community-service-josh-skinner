@@ -11,6 +11,7 @@ public interface GuessRepository extends CrudRepository<Guess, Long> {
 
   Optional<Guess> getByExternalKeyAndGame(UUID guessKey, Game game);
 
-  Optional<Guess> getByExternalKeyAndGameExternalKeyAndGamePlayer (UUID guessKey, UUID gameKey, User player);
+  Optional<Guess> getByExternalKeyAndGameExternalKeyAndGamePlayer (
+      UUID guessKey, UUID gameKey, User player);
 
 }
